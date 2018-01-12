@@ -80,12 +80,17 @@ namespace SimplCommerce.Module.News.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(long id)
+        public async Task<IActionResult> Get(long id)
         {
-            var newsItem = _newsItemRepository.Query()
+            var newsItem = await _newsItemRepository.Query()
                .Include(x => x.ThumbnailImage)
                .Include(x => x.Categories)
-               .FirstOrDefault(x => x.Id == id);
+               .FirstOrDefaultAsync(x => x.Id == id);
+
+            if(newsItem == null)
+            {
+                return NotFound();
+            }
 
             var model = new NewsItemForm()
             {
@@ -107,7 +112,7 @@ namespace SimplCommerce.Module.News.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return new BadRequestObjectResult(ModelState);
+                return BadRequest(ModelState);
             }
 
             var currentUser = await _workContext.GetCurrentUser();
@@ -130,11 +135,9 @@ namespace SimplCommerce.Module.News.Controllers
                 newsItem.AddNewsItemCategory(newsItemCategory);
             }
 
-            SaveServiceMedia(model.ThumbnailImage, newsItem);
-
+            await SaveServiceMedia(model.ThumbnailImage, newsItem);
             _newsItemService.Create(newsItem);
-
-            return Ok();
+            return CreatedAtAction(nameof(Get), new { id = newsItem.Id }, null);
         }
 
         [HttpPut("{id}")]
@@ -142,13 +145,17 @@ namespace SimplCommerce.Module.News.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return new BadRequestObjectResult(ModelState);
+                return BadRequest(ModelState);
             } 
 
-            var newsItem = _newsItemRepository.Query()
+            var newsItem = await _newsItemRepository.Query()
                .Include(x => x.ThumbnailImage)
                .Include(x => x.Categories)
-               .FirstOrDefault(x => x.Id == id);
+               .FirstOrDefaultAsync(x => x.Id == id);
+            if(newsItem == null)
+            {
+                return NotFound();
+            }
 
             var currentUser = await _workContext.GetCurrentUser();
 
@@ -164,42 +171,40 @@ namespace SimplCommerce.Module.News.Controllers
 
             if (model.ThumbnailImage != null && newsItem.ThumbnailImage != null)
             {
-                _mediaService.DeleteMedia(newsItem.ThumbnailImage);
+                await _mediaService.DeleteMediaAsync(newsItem.ThumbnailImage);
             }
 
-            SaveServiceMedia(model.ThumbnailImage, newsItem);
-
+            await SaveServiceMedia(model.ThumbnailImage, newsItem);
             _newsItemService.Update(newsItem);
-
-            return Ok();
+            return Accepted();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
-            var newsItem = _newsItemRepository.Query().FirstOrDefault(x => x.Id == id);
+            var newsItem = await _newsItemRepository.Query().FirstOrDefaultAsync(x => x.Id == id);
             if (newsItem == null)
             {
                 return NotFound();
             }
 
             await _newsItemService.Delete(newsItem);
-            return Ok();
+            return NoContent();
         }
 
-        private string SaveFile(IFormFile file)
+        private async Task<string> SaveFile(IFormFile file)
         {
             var originalFileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Value.Trim('"');
             var fileName = $"{Guid.NewGuid()}{Path.GetExtension(originalFileName)}";
-            _mediaService.SaveMedia(file.OpenReadStream(), fileName, file.ContentType);
+            await _mediaService.SaveMediaAsync(file.OpenReadStream(), fileName, file.ContentType);
             return fileName;
         }
 
-        private void SaveServiceMedia(IFormFile image, NewsItem newsItem)
+        private async Task SaveServiceMedia(IFormFile image, NewsItem newsItem)
         {
             if (image != null)
             {
-                var fileName = SaveFile(image);
+                var fileName = await SaveFile(image);
                 if (newsItem.ThumbnailImage != null)
                 {
                     newsItem.ThumbnailImage.FileName = fileName;

@@ -32,6 +32,7 @@ namespace SimplCommerce.Module.Catalog.Controllers
                 WidgetZoneId = widgetInstance.WidgetZoneId,
                 PublishStart = widgetInstance.PublishStart,
                 PublishEnd = widgetInstance.PublishEnd,
+                DisplayOrder = widgetInstance.DisplayOrder,
                 Settings = JsonConvert.DeserializeObject<CategoryWidgetSettings>(widgetInstance.Data)
             };
 
@@ -50,11 +51,12 @@ namespace SimplCommerce.Module.Catalog.Controllers
                     WidgetZoneId = model.WidgetZoneId,
                     PublishStart = model.PublishStart,
                     PublishEnd = model.PublishEnd,
+                    DisplayOrder = model.DisplayOrder,
                     Data = JsonConvert.SerializeObject(model.Settings)
                 };
 
                 _widgetInstanceRepository.Add(widgetInstance);
-                _widgetInstanceRepository.SaveChange();
+                _widgetInstanceRepository.SaveChanges();
                 return Ok();
             }
             return new BadRequestObjectResult(ModelState);
@@ -70,8 +72,9 @@ namespace SimplCommerce.Module.Catalog.Controllers
                 widgetInstance.WidgetZoneId = model.WidgetZoneId;
                 widgetInstance.PublishStart = model.PublishStart;
                 widgetInstance.PublishEnd = model.PublishEnd;
+                widgetInstance.DisplayOrder = model.DisplayOrder;
                 widgetInstance.Data = JsonConvert.SerializeObject(model.Settings);
-                _widgetInstanceRepository.SaveChange();
+                _widgetInstanceRepository.SaveChanges();
                 return Ok();
             }
 

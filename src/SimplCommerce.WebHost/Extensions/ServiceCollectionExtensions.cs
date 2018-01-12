@@ -7,6 +7,7 @@ using System.Runtime.Loader;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Autofac.Features.Variance;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -24,6 +25,7 @@ using SimplCommerce.Module.Core.Data;
 using SimplCommerce.Module.Core.Extensions;
 using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Infrastructure.Web.ModelBinders;
+using SimplCommerce.Infrastructure.Web;
 
 namespace SimplCommerce.WebHost.Extensions
 {
@@ -73,6 +75,15 @@ namespace SimplCommerce.WebHost.Extensions
                 }
             }
 
+            foreach (var module in modules)
+            {
+                var moduleInitializerType = module.Assembly.GetTypes().FirstOrDefault(x => typeof(IModuleInitializer).IsAssignableFrom(x));
+                if ((moduleInitializerType != null) && (moduleInitializerType != typeof(IModuleInitializer)))
+                {
+                    services.AddSingleton(typeof(IModuleInitializer), moduleInitializerType);
+                }
+            }
+
             GlobalConfiguration.Modules = modules;
             return services;
         }
@@ -96,17 +107,7 @@ namespace SimplCommerce.WebHost.Extensions
 
             foreach (var module in modules)
             {
-                // Register controller from modules
                 mvcBuilder.AddApplicationPart(module.Assembly);
-
-                // Register dependency in modules
-                var moduleInitializerType =
-                    module.Assembly.GetTypes().FirstOrDefault(x => typeof(IModuleInitializer).IsAssignableFrom(x));
-                if ((moduleInitializerType != null) && (moduleInitializerType != typeof(IModuleInitializer)))
-                {
-                    var moduleInitializer = (IModuleInitializer)Activator.CreateInstance(moduleInitializerType);
-                    moduleInitializer.Init(services);
-                }
             }
 
             return services;
@@ -115,14 +116,22 @@ namespace SimplCommerce.WebHost.Extensions
         public static IServiceCollection AddCustomizedIdentity(this IServiceCollection services)
         {
             services
-                .AddIdentity<User, Role>()
+                .AddIdentity<User, Role>(options =>
+                {
+                    options.Password.RequireDigit = false;
+                    options.Password.RequiredLength = 4;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.Password.RequireUppercase = false;
+                    options.Password.RequireLowercase = false;
+                    options.Password.RequiredUniqueChars = 0;
+                })
                 .AddRoleStore<SimplRoleStore>()
                 .AddUserStore<SimplUserStore>()
                 .AddDefaultTokenProviders();
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(o => o.LoginPath = new PathString("/login"))
-                
+
                 .AddFacebook(x =>
             {
                 x.AppId = "1716532045292977";
@@ -161,24 +170,32 @@ namespace SimplCommerce.WebHost.Extensions
             var builder = new ContainerBuilder();
             builder.RegisterGeneric(typeof(Repository<>)).As(typeof(IRepository<>));
             builder.RegisterGeneric(typeof(RepositoryWithTypedId<,>)).As(typeof(IRepositoryWithTypedId<,>));
+            builder.RegisterType<RazorViewRenderer>().As<IRazorViewRenderer>();
 
-            builder.RegisterAssemblyTypes(typeof(IMediator).GetTypeInfo().Assembly).AsImplementedInterfaces();
-            builder.RegisterType<SequentialMediator>().As<IMediator>();
-            builder.Register<SingleInstanceFactory>(ctx =>
-            {
-                var c = ctx.Resolve<IComponentContext>();
-                return t => c.Resolve(t);
-            });
+            builder.RegisterSource(new ContravariantRegistrationSource());
+            builder.RegisterType<SequentialMediator>().As<IMediator>().InstancePerLifetimeScope();
+            builder
+              .Register<SingleInstanceFactory>(ctx =>
+              {
+                  var c = ctx.Resolve<IComponentContext>();
+                  return t => { object o; return c.TryResolve(t, out o) ? o : null; };
+              })
+              .InstancePerLifetimeScope();
 
-            builder.Register<MultiInstanceFactory>(ctx =>
-            {
-                var c = ctx.Resolve<IComponentContext>();
-                return t => (IEnumerable<object>)c.Resolve(typeof(IEnumerable<>).MakeGenericType(t));
-            });
+            builder
+              .Register<MultiInstanceFactory>(ctx =>
+              {
+                  var c = ctx.Resolve<IComponentContext>();
+                  return t => (IEnumerable<object>)c.Resolve(typeof(IEnumerable<>).MakeGenericType(t));
+              })
+              .InstancePerLifetimeScope();
 
             foreach (var module in GlobalConfiguration.Modules)
             {
-                builder.RegisterAssemblyTypes(module.Assembly).AsImplementedInterfaces();
+                builder.RegisterAssemblyTypes(module.Assembly).Where(t => t.Name.EndsWith("Repository")).AsImplementedInterfaces();
+                builder.RegisterAssemblyTypes(module.Assembly).Where(t => t.Name.EndsWith("Service")).AsImplementedInterfaces();
+                builder.RegisterAssemblyTypes(module.Assembly).Where(t => t.Name.EndsWith("ServiceProvider")).AsImplementedInterfaces();
+                builder.RegisterAssemblyTypes(module.Assembly).Where(t => t.Name.EndsWith("Handler")).AsImplementedInterfaces();
             }
 
             builder.RegisterInstance(configuration);

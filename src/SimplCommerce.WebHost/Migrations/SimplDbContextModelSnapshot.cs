@@ -2,9 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Internal;
 using SimplCommerce.Module.Core.Data;
 using System;
 
@@ -241,6 +238,8 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<int?>("StockQuantity");
 
+                    b.Property<long?>("TaxClassId");
+
                     b.Property<long?>("ThumbnailImageId");
 
                     b.Property<long?>("UpdatedById");
@@ -254,6 +253,8 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasIndex("BrandId");
 
                     b.HasIndex("CreatedById");
+
+                    b.HasIndex("TaxClassId");
 
                     b.HasIndex("ThumbnailImageId");
 
@@ -479,6 +480,8 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<string>("CustomLink");
 
+                    b.Property<int>("DisplayOrder");
+
                     b.Property<long?>("EntityId");
 
                     b.Property<long>("MenuId");
@@ -589,13 +592,17 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<string>("AddressLine2");
 
+                    b.Property<string>("City");
+
                     b.Property<string>("ContactName");
 
                     b.Property<long>("CountryId");
 
-                    b.Property<long>("DistrictId");
+                    b.Property<long?>("DistrictId");
 
                     b.Property<string>("Phone");
+
+                    b.Property<string>("PostalCode");
 
                     b.Property<long>("StateOrProvinceId");
 
@@ -615,7 +622,11 @@ namespace SimplCommerce.WebHost.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd();
 
+                    b.Property<bool>("IsVisibleInCommonSettingPage");
+
                     b.Property<string>("Key");
+
+                    b.Property<string>("Module");
 
                     b.Property<string>("Value");
 
@@ -628,6 +639,14 @@ namespace SimplCommerce.WebHost.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Code2");
+
+                    b.Property<string>("Code3");
+
+                    b.Property<bool>("IsBillingEnabled");
+
+                    b.Property<bool>("IsShippingEnabled");
 
                     b.Property<string>("Name");
 
@@ -766,6 +785,10 @@ namespace SimplCommerce.WebHost.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Code");
+
+                    b.Property<string>("CountryCode");
 
                     b.Property<long>("CountryId");
 
@@ -1004,6 +1027,38 @@ namespace SimplCommerce.WebHost.Migrations
                     b.ToTable("Core_WidgetZone");
                 });
 
+            modelBuilder.Entity("SimplCommerce.Module.Inventory.Models.Stock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long>("ProductId");
+
+                    b.Property<int>("Quantity");
+
+                    b.Property<long>("WarehouseId");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Inventory_Stock");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Inventory.Models.Warehouse", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long?>("AddressId");
+
+                    b.Property<string>("Name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddressId");
+
+                    b.ToTable("Inventory_Warehouse");
+                });
+
             modelBuilder.Entity("SimplCommerce.Module.Localization.Models.Culture", b =>
                 {
                     b.Property<long>("Id")
@@ -1116,52 +1171,6 @@ namespace SimplCommerce.WebHost.Migrations
                     b.ToTable("News_NewsItemCategory");
                 });
 
-            modelBuilder.Entity("SimplCommerce.Module.Orders.Models.Cart", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("CouponCode");
-
-                    b.Property<string>("CouponRuleName");
-
-                    b.Property<DateTimeOffset>("CreatedOn");
-
-                    b.Property<bool>("IsActive");
-
-                    b.Property<DateTimeOffset?>("UpdatedOn");
-
-                    b.Property<long>("UserId");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders_Cart");
-                });
-
-            modelBuilder.Entity("SimplCommerce.Module.Orders.Models.CartItem", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<long>("CartId");
-
-                    b.Property<DateTimeOffset>("CreatedOn");
-
-                    b.Property<long>("ProductId");
-
-                    b.Property<int>("Quantity");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CartId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("Orders_CartItem");
-                });
-
             modelBuilder.Entity("SimplCommerce.Module.Orders.Models.Order", b =>
                 {
                     b.Property<long>("Id")
@@ -1181,13 +1190,23 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<int>("OrderStatus");
 
+                    b.Property<decimal>("OrderTotal");
+
                     b.Property<long?>("ParentId");
 
+                    b.Property<string>("PaymentMethod");
+
                     b.Property<long>("ShippingAddressId");
+
+                    b.Property<decimal>("ShippingAmount");
+
+                    b.Property<string>("ShippingMethod");
 
                     b.Property<decimal>("SubTotal");
 
                     b.Property<decimal>("SubTotalWithDiscount");
+
+                    b.Property<decimal>("TaxAmount");
 
                     b.Property<DateTimeOffset?>("UpdatedOn");
 
@@ -1215,13 +1234,17 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<string>("AddressLine2");
 
+                    b.Property<string>("City");
+
                     b.Property<string>("ContactName");
 
                     b.Property<long>("CountryId");
 
-                    b.Property<long>("DistrictId");
+                    b.Property<long?>("DistrictId");
 
                     b.Property<string>("Phone");
+
+                    b.Property<string>("PostalCode");
 
                     b.Property<long>("StateOrProvinceId");
 
@@ -1249,6 +1272,10 @@ namespace SimplCommerce.WebHost.Migrations
 
                     b.Property<int>("Quantity");
 
+                    b.Property<decimal>("TaxAmount");
+
+                    b.Property<decimal>("TaxPercent");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
@@ -1256,6 +1283,50 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("Orders_OrderItem");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Payments.Models.Payment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<decimal>("Amount");
+
+                    b.Property<DateTimeOffset>("CreatedOn");
+
+                    b.Property<string>("GatewayTransactionId");
+
+                    b.Property<long>("OrderId");
+
+                    b.Property<string>("PaymentMethod");
+
+                    b.Property<DateTimeOffset?>("UpdatedOn");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Payments_Payment");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Payments.Models.PaymentProvider", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AdditionalSettings");
+
+                    b.Property<string>("ConfigureUrl");
+
+                    b.Property<bool>("IsEnabled");
+
+                    b.Property<string>("LandingViewComponentName");
+
+                    b.Property<string>("Name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Payments_PaymentProvider");
                 });
 
             modelBuilder.Entity("SimplCommerce.Module.Pricing.Models.CartRule", b =>
@@ -1512,6 +1583,190 @@ namespace SimplCommerce.WebHost.Migrations
                     b.ToTable("Search_Query");
                 });
 
+            modelBuilder.Entity("SimplCommerce.Module.Shipments.Models.Shipment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<DateTimeOffset>("CreatedOn");
+
+                    b.Property<long>("OrderId");
+
+                    b.Property<string>("TrackingNumber");
+
+                    b.Property<DateTimeOffset>("UpdatedOn");
+
+                    b.Property<long>("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Shipments_Shipment");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Shipments.Models.ShipmentItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long>("OrderItemId");
+
+                    b.Property<int>("Quantity");
+
+                    b.Property<long>("ShipmentId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShipmentId");
+
+                    b.ToTable("Shipments_ShipmentItem");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Shipping.Models.ShippingProvider", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AdditionalSettings");
+
+                    b.Property<string>("ConfigureUrl");
+
+                    b.Property<bool>("IsEnabled");
+
+                    b.Property<string>("Name");
+
+                    b.Property<string>("OnlyCountryIdsString");
+
+                    b.Property<string>("OnlyStateOrProvinceIdsString");
+
+                    b.Property<string>("ShippingPriceServiceTypeName");
+
+                    b.Property<bool>("ToAllShippingEnabledCountries");
+
+                    b.Property<bool>("ToAllShippingEnabledStatesOrProvinces");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Shipping_ShippingProvider");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShippingTableRate.Models.PriceAndDestination", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long?>("CountryId");
+
+                    b.Property<decimal>("MinOrderSubtotal");
+
+                    b.Property<string>("Note");
+
+                    b.Property<decimal>("ShippingPrice");
+
+                    b.Property<long?>("StateOrProvinceId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("StateOrProvinceId");
+
+                    b.ToTable("ShippingTableRate_PriceAndDestination");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShoppingCart.Models.Cart", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("CouponCode");
+
+                    b.Property<string>("CouponRuleName");
+
+                    b.Property<DateTimeOffset>("CreatedOn");
+
+                    b.Property<bool>("IsActive");
+
+                    b.Property<decimal?>("ShippingAmount");
+
+                    b.Property<string>("ShippingData");
+
+                    b.Property<string>("ShippingMethod");
+
+                    b.Property<decimal?>("TaxAmount");
+
+                    b.Property<DateTimeOffset?>("UpdatedOn");
+
+                    b.Property<long>("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ShoppingCart_Cart");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShoppingCart.Models.CartItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long>("CartId");
+
+                    b.Property<DateTimeOffset>("CreatedOn");
+
+                    b.Property<long>("ProductId");
+
+                    b.Property<int>("Quantity");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CartId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ShoppingCart_CartItem");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Tax.Models.TaxClass", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tax_TaxClass");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Tax.Models.TaxRate", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<long>("CountryId");
+
+                    b.Property<string>("Name");
+
+                    b.Property<decimal>("Rate");
+
+                    b.Property<long?>("StateOrProvinceId");
+
+                    b.Property<long>("TaxClassId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("StateOrProvinceId");
+
+                    b.HasIndex("TaxClassId");
+
+                    b.ToTable("Tax_TaxRate");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>
                 {
                     b.HasOne("SimplCommerce.Module.Core.Models.Role")
@@ -1572,6 +1827,10 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasOne("SimplCommerce.Module.Core.Models.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById");
+
+                    b.HasOne("SimplCommerce.Module.Tax.Models.TaxClass", "TaxClass")
+                        .WithMany()
+                        .HasForeignKey("TaxClassId");
 
                     b.HasOne("SimplCommerce.Module.Core.Models.Media", "ThumbnailImage")
                         .WithMany()
@@ -1827,6 +2086,13 @@ namespace SimplCommerce.WebHost.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("SimplCommerce.Module.Inventory.Models.Warehouse", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Core.Models.Address", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressId");
+                });
+
             modelBuilder.Entity("SimplCommerce.Module.Localization.Models.Resource", b =>
                 {
                     b.HasOne("SimplCommerce.Module.Localization.Models.Culture", "Culture")
@@ -1860,27 +2126,6 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasOne("SimplCommerce.Module.News.Models.NewsItem", "NewsItem")
                         .WithMany("Categories")
                         .HasForeignKey("NewsItemId")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("SimplCommerce.Module.Orders.Models.Cart", b =>
-                {
-                    b.HasOne("SimplCommerce.Module.Core.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("SimplCommerce.Module.Orders.Models.CartItem", b =>
-                {
-                    b.HasOne("SimplCommerce.Module.Orders.Models.Cart", "Cart")
-                        .WithMany("Items")
-                        .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("SimplCommerce.Module.Catalog.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
@@ -1933,6 +2178,14 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasOne("SimplCommerce.Module.Catalog.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Payments.Models.Payment", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Orders.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
@@ -2040,6 +2293,71 @@ namespace SimplCommerce.WebHost.Migrations
                     b.HasOne("SimplCommerce.Module.Core.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Shipments.Models.Shipment", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Orders.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Shipments.Models.ShipmentItem", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Shipments.Models.Shipment", "Shipment")
+                        .WithMany()
+                        .HasForeignKey("ShipmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShippingTableRate.Models.PriceAndDestination", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Core.Models.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryId");
+
+                    b.HasOne("SimplCommerce.Module.Core.Models.StateOrProvince", "StateOrProvince")
+                        .WithMany()
+                        .HasForeignKey("StateOrProvinceId");
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShoppingCart.Models.Cart", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Core.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.ShoppingCart.Models.CartItem", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.ShoppingCart.Models.Cart", "Cart")
+                        .WithMany("Items")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("SimplCommerce.Module.Catalog.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("SimplCommerce.Module.Tax.Models.TaxRate", b =>
+                {
+                    b.HasOne("SimplCommerce.Module.Core.Models.Country", "Country")
+                        .WithMany()
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("SimplCommerce.Module.Core.Models.StateOrProvince", "StateOrProvince")
+                        .WithMany()
+                        .HasForeignKey("StateOrProvinceId");
+
+                    b.HasOne("SimplCommerce.Module.Tax.Models.TaxClass", "TaxClass")
+                        .WithMany()
+                        .HasForeignKey("TaxClassId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 #pragma warning restore 612, 618

@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Module.Cms.Models;
 using SimplCommerce.Module.Cms.ViewModels;
-using Microsoft.EntityFrameworkCore;
 
 namespace SimplCommerce.Module.Cms.Controllers
 {
@@ -23,16 +24,27 @@ namespace SimplCommerce.Module.Cms.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
-            var menuList = _menuRepository.Query().ToList();
+            var menuList = await _menuRepository.Query()
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    x.IsPublished,
+                    x.IsSystem
+                })
+                .ToListAsync();
             return Json(menuList);
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(long id)
+        public async Task<IActionResult> Get(long id)
         {
-            var menu = _menuRepository.Query().Include(x => x.MenuItems).ThenInclude(m => m.Entity).FirstOrDefault(x => x.Id == id);
+            var menu = await _menuRepository.Query()
+                .Include(x => x.MenuItems)
+                .ThenInclude(m => m.Entity)
+                .FirstOrDefaultAsync(x => x.Id == id);
             if(menu == null)
             {
                 return NotFound();
@@ -49,19 +61,25 @@ namespace SimplCommerce.Module.Cms.Controllers
                     EntityId = x.EntityId,
                     ParentId = x.ParentId,
                     Name = x.Entity == null ? x.Name : x.Entity.Name,
-                    CustomLink = x.CustomLink
-                }).ToList()
+                    CustomLink = x.CustomLink,
+                    DisplayOrder = x.DisplayOrder,
+                }).OrderBy(x => x.DisplayOrder).ToList()
             };
 
             return Json(model);
         }
 
         [HttpPost("{id}/add-items")]
-        public IActionResult AddItem(long id, [FromBody] IList<MenuItemForm> model)
+        public async Task<IActionResult> AddItem(long id, [FromBody] IList<MenuItemForm> model)
         {
             if (ModelState.IsValid)
             {
-                var menu = _menuRepository.Query().Include(x => x.MenuItems).FirstOrDefault(x => x.Id == id);
+                var menu = await _menuRepository.Query().Include(x => x.MenuItems).FirstOrDefaultAsync(x => x.Id == id);
+                if(menu == null)
+                {
+                    return NotFound();
+                }
+
                 var addedMenuItems = new List<MenuItem>();
                 foreach (var item in model)
                 {
@@ -71,14 +89,15 @@ namespace SimplCommerce.Module.Cms.Controllers
                         CustomLink = item.CustomLink,
                         Name = item.Name,
                         EntityId = item.EntityId,
-                        ParentId = item.ParentId
+                        ParentId = item.ParentId,
+                        DisplayOrder = item.DisplayOrder,
                     };
 
                     menu.MenuItems.Add(menuItem);
                     addedMenuItems.Add(menuItem);
                 }
 
-                _menuRepository.SaveChange();
+                await _menuRepository.SaveChangesAsync();
                 return Ok(addedMenuItems.Select(x => new MenuItemForm
                 {
                     Id = x.Id,
@@ -87,26 +106,26 @@ namespace SimplCommerce.Module.Cms.Controllers
                     CustomLink = x.CustomLink
                 }));
             }
-            return new BadRequestObjectResult(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpDelete("delete-item/{id}")]
-        public IActionResult DeleteItem(long id)
+        public async Task<IActionResult> DeleteItem(long id)
         {
-            var menuItem = _menuItemRepository.Query().FirstOrDefault(x => x.Id == id);
+            var menuItem = await _menuItemRepository.Query().FirstOrDefaultAsync(x => x.Id == id);
             if (menuItem == null)
             {
-                return new NotFoundResult();
+                return NotFound();
             }
 
             _menuItemRepository.Remove(menuItem);
-            _menuItemRepository.SaveChange();
+            await _menuItemRepository.SaveChangesAsync();
 
-            return Ok();
+            return NoContent();
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] MenuForm model)
+        public async Task<IActionResult> Post([FromBody] MenuForm model)
         {
             if (ModelState.IsValid)
             {
@@ -117,19 +136,24 @@ namespace SimplCommerce.Module.Cms.Controllers
                 };
 
                 _menuRepository.Add(menu);
-                _menuRepository.SaveChange();
+                await _menuRepository.SaveChangesAsync();
 
                 return Json(menu);
             }
-            return new BadRequestObjectResult(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(long id, [FromBody] MenuForm model)
+        public async Task<IActionResult> Put(long id, [FromBody] MenuForm model)
         {
             if (ModelState.IsValid)
             {
-                var menu = _menuRepository.Query().Include(x => x.MenuItems).FirstOrDefault(x => x.Id == id);
+                var menu = await _menuRepository.Query().Include(x => x.MenuItems).FirstOrDefaultAsync(x => x.Id == id);
+                if(menu == null)
+                {
+                    return NotFound();
+                }
+
                 menu.Name = model.Name;
                 menu.IsPublished = model.IsPublished;
                 foreach(var item in menu.MenuItems)
@@ -144,6 +168,7 @@ namespace SimplCommerce.Module.Cms.Controllers
                     item.Name = modelMenuItem.Name;
                     item.CustomLink = modelMenuItem.CustomLink;
                     item.ParentId = modelMenuItem.ParentId;
+                    item.DisplayOrder = modelMenuItem.DisplayOrder;
                 }
 
                 var deletedMenuItems = menu.MenuItems.Where(x => !model.Items.Any(m => m.Id == x.Id));
@@ -152,20 +177,20 @@ namespace SimplCommerce.Module.Cms.Controllers
                     _menuItemRepository.Remove(item);
                 }
 
-                _menuRepository.SaveChange();
-                return Ok();
+                await _menuRepository.SaveChangesAsync();
+                return Accepted();
             }
 
-            return new BadRequestObjectResult(ModelState);
+            return BadRequest(ModelState);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(long id)
+        public async Task<IActionResult> Delete(long id)
         {
-            var menu = _menuRepository.Query().FirstOrDefault(x => x.Id == id);
+            var menu = await _menuRepository.Query().FirstOrDefaultAsync(x => x.Id == id);
             if (menu == null)
             {
-                return new NotFoundResult();
+                return NotFound();
             }
 
             if (menu.IsSystem)
@@ -174,9 +199,8 @@ namespace SimplCommerce.Module.Cms.Controllers
             }
 
             _menuRepository.Remove(menu);
-            _menuRepository.SaveChange();
-
-            return Ok();
+            await _menuRepository.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

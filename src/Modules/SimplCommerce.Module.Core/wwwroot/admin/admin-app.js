@@ -24,7 +24,13 @@
         'simplAdmin.localization',
         'simplAdmin.news',
         'simplAdmin.contacts',
-        'simplAdmin.pricing'
+        'simplAdmin.pricing',
+        'simplAdmin.tax',
+        'simplAdmin.shippings',
+        'simplAdmin.shipping-tablerate',
+        'simplAdmin.payments',
+        'simplAdmin.paymentStripe',
+        'simplAdmin.paymentPaypalExpress'
     ]);
 
     toastr.options.closeButton = true;
